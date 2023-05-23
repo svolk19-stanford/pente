@@ -1,8 +1,5 @@
-from util import manhattanDistance
-from game import Directions
 import random
 import util
-from typing import Any, DefaultDict, List, Set, Tuple
 
 from game import Agent
 from pacman import GameState
