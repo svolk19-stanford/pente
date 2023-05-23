@@ -2,7 +2,7 @@ import random
 import util
 
 from game import Agent
-from pacman import GameState
+from pente import GameState
 
 
 
@@ -11,7 +11,7 @@ class ReflexAgent(Agent):
       A reflex agent chooses an action at each choice point by examining
       its alternatives via a state evaluation function.
 
-      The code below is provided as a guide.  You are welcome to change
+      The code below is provided as a guide. You are welcome to change
       it in any way you see fit, so long as you don't touch our method
       headers.
     """
@@ -24,40 +24,19 @@ class ReflexAgent(Agent):
         """
         getAction chooses among the best options according to the evaluation function.
 
-        getAction takes a GameState and returns some Directions.X for some X in the set {North, South, West, East}
+        getAction takes a GameState and returns some point 
         ------------------------------------------------------------------------------
         Description of GameState and helper functions:
 
-        A GameState specifies the full game state, including the food, capsules,
-        agent configurations and score changes. In this function, the |gameState| argument
+        A GameState specifies the full game state. In this function, the |gameState| argument
         is an object of GameState class. Following are a few of the helper methods that you
-        can use to query a GameState object to gather information about the present state
-        of Pac-Man, the ghosts and the maze.
+        can use to query a GameState object.
 
         gameState.getLegalActions(agentIndex):
-            Returns the legal actions for the agent specified. Returns Pac-Man's legal moves by default.
+            Returns the legal actions for the agent specified.
 
         gameState.generateSuccessor(agentIndex, action):
             Returns the successor state after the specified agent takes the action.
-            Pac-Man is always agent 0.
-
-        gameState.getPacmanState():
-            Returns an AgentState object for pacman (in game.py)
-            state.configuration.pos gives the current position
-            state.direction gives the travel vector
-
-        gameState.getGhostStates():
-            Returns list of AgentState objects for the ghosts
-
-        gameState.getNumAgents():
-            Returns the total number of agents in the game
-
-        gameState.getScore():
-            Returns the score corresponding to the current state of the game
-
-
-        The GameState class is defined in pacman.py and you might want to look into that for
-        other helper methods, though you don't need to.
         """
         # Collect legal moves and successor states
         legalMoves = gameState.getLegalActions()
@@ -76,7 +55,7 @@ class ReflexAgent(Agent):
 
     def evaluationFunction(self, currentGameState: GameState, action: str) -> float:
         """
-        The evaluation function takes in the current GameState (defined in pacman.py)
+        The evaluation function takes in the current GameState
         and a proposed action and returns a rough estimate of the resulting successor
         GameState's value.
 
@@ -154,9 +133,6 @@ class MinimaxAgent(MultiAgentSearchAgent):
 
           gameState.generateSuccessor(agentIndex, action):
             Returns the successor game state after an agent takes an action
-
-          gameState.getNumAgents():
-            Returns the total number of agents in the game
 
           gameState.getScore():
             Returns the score corresponding to the current state of the game
