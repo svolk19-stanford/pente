@@ -5,6 +5,29 @@ import random, util
 
 from game import Agent
 
+class cliAgent(Agent):
+    def getAction(self):
+        while True:
+            text = input("input a move as 'x, y': ")
+            try:
+                move_coords = text.split(",")
+                move_coords = [int(i) for i in move_coords]
+                assert(len(move_coords) == 2)
+            except:
+                print("input failed \n")
+                continue
+
+            text = input(f"confirm {move_coords} (y/n): ")
+            try:
+                assert(text == "y" or text == "n")
+                if text != "y":
+                   continue
+                return move_coords
+            except:
+                print("input 'y' or 'n' please.\n")
+                continue
+        
+
 class ReflexAgent(Agent):
   """
     A reflex agent chooses an action at each choice point by examining

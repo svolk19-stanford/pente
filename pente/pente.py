@@ -1,7 +1,7 @@
 
 from game import GameStateData
 from game import Game
-from game import Actions
+from agents import cliAgent
 import util
 import sys, types, time, random, os, cmd
 
@@ -40,12 +40,7 @@ class GameState:
 
         # Let agent's logic deal with its action's effects on the board
         playerRules.applyAction(state, action, agentIndex)
-
-        # Book keeping
         return state
-
-    def getLegalActions(self):
-        return self.getLegalActions(0)
 
     def getScore(self):
         return self.data.score
@@ -114,7 +109,8 @@ class playerRules:
         """
         Returns a list of possible actions.
         """
-        possibleActions = Actions.getPossibleActions()
+        possibleActions = []
+        # TODO implement
         return possibleActions
 
     def applyAction(state, action, agentIndex):
@@ -124,41 +120,9 @@ class playerRules:
 if __name__ == '__main__':
     import time
     tic = time.perf_counter()
-    game = Game()
-    print(game)
-    agent = 0
-    while True:
-        text = input("input a move as 'x, y': ")
-        try:
-            move_coords = text.split(",")
-            move_coords = [int(i) for i in move_coords]
-            assert(len(move_coords) == 2)
-        except:
-            print("input failed \n")
-            continue
-
-        text = input(f"confirm {move_coords} (y/n): ")
-        try:
-            assert(text == "y" or text == "n")
-            if text != "y":
-                continue
-
-        except:
-            print("input 'y' or 'n' please.\n")
-            continue
-
-        try:
-            if agent == 0:
-                game.move(0, move_coords)
-                agent=1
-            else:
-                game.move(1, move_coords)
-                agent = 0
-        except:
-            print("invalid move\n")
-            continue
-
-        print(game)
-        
+    player1 = cliAgent()
+    player2 = cliAgent()
+    game = Game(agents=[player1, player2])
+    game.run()
     toc = time.perf_counter()
     print("total times: " + str(toc - tic))

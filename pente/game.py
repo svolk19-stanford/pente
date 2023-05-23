@@ -15,22 +15,6 @@ class Agent:
     """
     raiseNotDefined()
 
-
-class Actions:
-  
-    @staticmethod
-    def getPossibleActions():
-        possible = []
-
-        #TODO: create possible actions given gamestate
-
-        return possible
-
-    @staticmethod
-    def getSuccessor(action):
-        #TODO: return successor state given action
-        return
-
 class GameStateData:
 
   def __init__(self, board, prevState=None):
@@ -56,7 +40,7 @@ class Game:
     The Game manages the control flow, soliciting actions from agents.
     """
 
-    def __init__(self, first_turn=0, board_size=19, captures_to_win=5, run_len_to_win=5):
+    def __init__(self, agents, first_turn=0, board_size=19, captures_to_win=5, run_len_to_win=5):
         self.board = [[0 for i in range(board_size)] for j in range(board_size)]
         self.first_turn = first_turn
         self.board_size = board_size
@@ -64,6 +48,9 @@ class Game:
         self.captures_to_win = captures_to_win
         self.run_len_to_win = run_len_to_win
         self.moveHistory = []
+        self.startingIndex = 0
+        self.agents = agents
+
 
     def move(self, agent_index, move:tuple):
         try:
@@ -100,6 +87,40 @@ class Game:
             row_str += "\n"
             board_str += row_str
         return board_str
+
+    def run(self): # run an instance of the game, querying actions from agents
+        self.numMoves = 0
+        agentIndex = self.startingIndex
+        print_board = True
+
+        while not self.gameOver:
+            if print_board:
+                print(self)
+            agent = self.agents[agentIndex]
+            # action = agent.getAction(self.state) # for other agents 
+            action = agent.getAction() # for CLI agents only
+            self.moveHistory.append((agentIndex, action))
+            # self.state = self.state.generateSuccessor(agentIndex, action)
+            self.numMoves += 1
+
+            try:
+                if agentIndex == 0:
+                    self.move(agentIndex, action)
+                    agentIndex = 1
+                else:
+                    self.move(agentIndex, action)
+                    agentIndex = 0
+                print_board = True
+            except:
+                print("invalid move\n")
+                print_board = False
+                continue
+
+            #TODO: process correctness and game ending
+        #TODO: output move history and winning info to a file for TD learning training
+
+
+
 
 
 
