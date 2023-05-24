@@ -17,12 +17,14 @@ class Agent:
 
 class GameStateData:
 
-  def __init__(self, board_size, prevStateData=None):
+  def __init__(self, board_size, captures_to_win, run_len_to_win, prevStateData=None):
     """
     Generates a new data packet by copying information from its predecessor.
     """
     self.board = [[0 for i in range(board_size)] for j in range(board_size)]
     self.board_size = board_size
+    self.captures_to_win = captures_to_win
+    self.run_len_to_win = run_len_to_win
     self.score = 0
     self.num_player_1_captures = 0
     self.num_player_2_captures = 0
@@ -31,6 +33,8 @@ class GameStateData:
     if prevStateData != None:
         self.board_size = prevStateData.board_size
         self.board = prevStateData.board
+        self.captures_to_win = prevStateData.captures_to_win
+        self.run_len_to_win = prevStateData.run_len_to_win
         self.score = prevStateData.score
         self.num_player_1_captures = prevStateData.num_player_1_captures
         self.num_player_2_captures = prevStateData.num_player_2_captures
@@ -42,11 +46,9 @@ class Game:
     The Game manages the control flow, soliciting actions from agents.
     """
 
-    def __init__(self, state, agents, first_turn=0, captures_to_win=5, run_len_to_win=5):
+    def __init__(self, state, agents, first_turn=0):
         self.first_turn = first_turn
         self.gameOver = False
-        self.captures_to_win = captures_to_win
-        self.run_len_to_win = run_len_to_win
         self.moveHistory = []
         self.startingIndex = 0
         self.agents = agents
@@ -61,12 +63,13 @@ class Game:
                 board_str += f" {i}"
 
         board_str += "\n"
-        for i, row in enumerate(self.state.data.board):
-            if i < 10:
-                row_str = f" {i} "
+        for j in range(len(self.state.data.board[0])):
+            if j < 10:
+                row_str = f" {j} "
             else:
-                row_str = f" {i}"
-            for val in row:
+                row_str = f" {j}"
+            for i in range(len(self.state.data.board)):
+                val = self.state.data.board[i][j]
                 if val == 0:
                     row_str += "-|-"
                 elif val == 1:
@@ -94,16 +97,23 @@ class Game:
                 if agentIndex == 0:
                     self.state = self.state.generateSuccessor(agentIndex, action)
                     agentIndex = 1
+                    print_board = True
                 else:
                     self.state = self.state.generateSuccessor(agentIndex, action)
                     agentIndex = 0
-                print_board = True
+                    print_board = False
             except:
                 print("invalid move\n")
                 print_board = False
                 continue
 
-            #TODO: process correctness and game ending
+            if self.state.isWin():
+                print("You win!!\n")
+                self.gameOver = True
+            if self.state.isLose():
+                print("You loose :(\n")
+                self.gameOver = True
+
         #TODO: output move history and winning info to a file for TD learning training
 
 
