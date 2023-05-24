@@ -6,7 +6,7 @@ import random, util
 from game import Agent
 
 class cliAgent(Agent):
-    def getAction(self):
+    def getAction(self, gameState):
         while True:
             text = input("input a move as 'x, y': ")
             try:
@@ -26,6 +26,13 @@ class cliAgent(Agent):
             except:
                 print("input 'y' or 'n' please.\n")
                 continue
+
+class randomAgent(Agent):
+    def getAction(self, gameState):
+        legalMoves = gameState.getLegalActions()
+        bestIndices = [index for index in range(len(legalMoves))]
+        chosenIndex = random.choice(bestIndices) # Pick randomly 
+        return legalMoves[chosenIndex]
         
 
 class ReflexAgent(Agent):
