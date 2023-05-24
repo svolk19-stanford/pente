@@ -64,6 +64,11 @@ class GameState:
     def getBoard(self):
         return self.data.board
     
+    def getBoardPosition(self, x, y):
+        assert(x < self.data.board_size and x >= 0)
+        assert(y < self.data.board_size and y >= 0)
+        return self.data.board[x][y]
+    
     def getRunLengths(self, agentIndex):
         agent_run_lengths = []        
         for i, row in enumerate(self.getBoard()):
@@ -178,9 +183,52 @@ class playerRules:
             assert(action[0] < state.data.board_size)
             assert(action[1] < state.data.board_size)
             assert(state.data.board[action[0]][action[1]] == 0)
-            state.data.board[action[0]][action[1]] = agentIndex + 1       
+            state.data.board[action[0]][action[1]] = agentIndex + 1  
+            positions_freed = playerRules.is_capture(state, action, agentIndex)
+            num_captures = len(positions_freed) / 2
+            print(num_captures)
+            if agentIndex == 0:
+                state.data.num_player_1_captures += num_captures
+            else:
+                state.data.num_player_2_captures += num_captures
+            for position in positions_freed: # free positions on board
+                state.data.board[position[0]][position[1]] = 0
         except:
             raise Exception("Invalid move")
+        
+    @staticmethod
+    def is_capture(state, action, agentIndex):
+        """
+        determine whether a move creates a capture. Returns a list of liberated 
+        gridpoints to be reset to 0.
+        """
+        # list of 8 directions in which to check for a capture, defined as the 
+        # update values for a given position 
+        directions = [(-1, 0), (-1, -1), (0, -1), # left, up left, up
+                      (1, -1), (1, 0), (1, 1), # up right, right, down right
+                      (0, 1), (-1, 1)] # down, down left
+        positions_freed = []
+        # this template is what a capture looks like in any direction from starting
+        if agentIndex == 0:
+            capture_template = [2, 2, 1] 
+        else:
+            capture_template = [1, 1, 2] 
+
+        for direction in directions:
+            position_vals = []
+            positions = []
+            for i in range(1, 4): # move three along direction, sampling positions
+                new_x = action[0] + (direction[0] * i)
+                new_y = action[1] + (direction[1] * i)
+                try:
+                    position_vals.append(state.getBoardPosition(new_x, new_y))
+                    positions.append((new_x, new_y))
+                except: # position out of bounds
+                    break
+            if position_vals == capture_template: #capture along direction
+                positions_freed += [i for i in positions[:-1]]
+        return positions_freed
+
 
 if __name__ == '__main__':
     import time

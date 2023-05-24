@@ -40,7 +40,6 @@ class GameStateData:
         self.num_player_2_captures = prevStateData.num_player_2_captures
         self.turn = prevStateData.turn
 
-
 class Game:
     """
     The Game manages the control flow, soliciting actions from agents.
@@ -97,11 +96,11 @@ class Game:
                 if agentIndex == 0:
                     self.state = self.state.generateSuccessor(agentIndex, action)
                     agentIndex = 1
-                    print_board = True
+                    print_board = False
                 else:
                     self.state = self.state.generateSuccessor(agentIndex, action)
                     agentIndex = 0
-                    print_board = False
+                    print_board = True
             except:
                 print("invalid move\n")
                 print_board = False
