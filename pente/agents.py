@@ -1,8 +1,22 @@
 import random
-import util
+import util 
+from util import raiseNotDefined
 
-from game import Agent
 from pente import GameState
+
+class Agent:
+  """
+  An agent must define a getAction method, but may also define the
+  following methods which will be called if they exist:
+  """
+  def __init__(self, index=0):
+    self.index = index
+
+  def getAction(self, state):
+    """
+    The Agent will receive a GameState and must return an action
+    """
+    raiseNotDefined()
 
 class cliAgent(Agent):
     def getAction(self):
