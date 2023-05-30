@@ -167,28 +167,23 @@ class MinimaxAgent(MultiAgentSearchAgent):
         # BEGIN_YOUR_CODE (our solution is 22 lines of code, but don't worry if you deviate from this)
         def get_V_minmax(agent_idx: int, gameState, depth: int) -> int:
             actions = gameState.getLegalActions(agent_idx)
-            if gameState.isWin() or gameState.isLose() or len(actions) == 0: # terminal state
-                return gameState.getScore()
-            elif depth == 0:
-                return self.evaluationFunction(gameState)
+            if gameState.isWin() or gameState.isLose() or len(actions) == 0 or depth == 0: # terminal state
+                return betterEvaluationFunction(gameState)
             else: # find V_minmax through recursion on actions
                 successors = [gameState.generateSuccessor(agent_idx, action) for action in actions]
-                if agent_idx == self.index: # max agent
-                    scores = [get_V_minmax(agent_idx + 1, succ, depth) for succ in successors]
+                if agent_idx == 0: # max agent
+                    scores = [get_V_minmax(1, succ, depth) for succ in successors]
                     return max(scores)
-                elif agent_idx > self.index and agent_idx < gameState.getNumAgents() - 1: # min agent
-                    scores = [get_V_minmax(agent_idx + 1, succ, depth) for succ in successors]
-                    return min(scores)
-                elif agent_idx == gameState.getNumAgents() - 1: # last min agent: decrements depth in recursion
-                    scores = [get_V_minmax(self.index, succ, depth - 1) for succ in successors]
+                elif agent_idx == 1: # min agent
+                    scores = [get_V_minmax(0, succ, depth - 1) for succ in successors]
                     return min(scores)
                 else:
                     raise Exception("unknown agent")
 
-        legalMoves = gameState.getLegalActions(self.index)
-        successors = [gameState.generateSuccessor(self.index, action) for action in legalMoves]
-        scores = [get_V_minmax(self.index + 1, succ, self.depth) for succ in successors]
-        bestScore = max(scores)
+        legalMoves = gameState.getLegalActions(1)
+        successors = [gameState.generateSuccessor(1, action) for action in legalMoves]
+        scores = [get_V_minmax(0, succ, self.depth) for succ in successors] 
+        bestScore = min(scores)
         bestIndices = [index for index in range(
             len(scores)) if scores[index] == bestScore]
         chosenIndex = random.choice(bestIndices)
@@ -211,17 +206,15 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         # BEGIN_YOUR_CODE (our solution is 43 lines of code, but don't worry if you deviate from this)
         def get_V_minmax_ab(agent_idx: int, gameState, depth: int, alpha: int, beta: int) -> float:
             actions = gameState.getLegalActions(agent_idx)
-            if gameState.isWin() or gameState.isLose() or len(actions) == 0: # terminal state
-                return gameState.getScore()
-            elif depth == 0:
-                return self.evaluationFunction(gameState)
+            if gameState.isWin() or gameState.isLose() or len(actions) == 0 or depth == 0: # terminal state
+                return betterEvaluationFunction(gameState)
             else: # find V_minmax through recursion on actions
                 if agent_idx == self.index: # max agent
                     value = float("-inf")
                     best_action = ""
                     for action in actions:
                         successor = gameState.generateSuccessor(agent_idx, action)
-                        succ_value = get_V_minmax_ab(agent_idx + 1, successor, depth, alpha, beta)
+                        succ_value = get_V_minmax_ab(1, successor, depth, alpha, beta)
                         if succ_value >= value:
                             value = succ_value
                             best_action = action  
@@ -230,23 +223,11 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
                         alpha = max([alpha, value])
                     return value
 
-                elif agent_idx > self.index and agent_idx < gameState.getNumAgents() - 1: # min agent
+                elif agent_idx == 1: # min agent
                     value = float("inf")
                     for action in actions:
                         successor = gameState.generateSuccessor(agent_idx, action)
-                        succ_value = get_V_minmax_ab(agent_idx + 1, successor, depth, alpha, beta)
-                        if succ_value <= value:
-                            value = succ_value
-                        if value <= alpha:
-                            break
-                        beta = min([beta, value])
-                    return value
-
-                elif agent_idx == gameState.getNumAgents() - 1: # last min agent: decrements depth in recursion
-                    value = float("inf")
-                    for action in actions:
-                        successor = gameState.generateSuccessor(agent_idx, action)
-                        succ_value = get_V_minmax_ab(self.index, successor, depth - 1, alpha, beta)
+                        succ_value = get_V_minmax_ab(0, successor, depth - 1, alpha, beta)
                         if succ_value <= value:
                             value = succ_value
                         if value <= alpha:
@@ -256,19 +237,19 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
                 else:
                     raise Exception("unknown agent")
 
-        legalMoves = gameState.getLegalActions(self.index)
-        successors = [gameState.generateSuccessor(self.index, action) for action in legalMoves]
-        scores = [get_V_minmax_ab(self.index + 1, succ, self.depth, float("-inf"), float("inf")) for succ in successors]
-        bestScore = max(scores)
-        bestIndices = [index for index in range(
-            len(scores)) if scores[index] == bestScore]
-        chosenIndex = random.choice(bestIndices)
+        legalMoves = gameState.getLegalActions(self.index + 1)
+        successors = [gameState.generateSuccessor(self.index + 1, action) for action in legalMoves]
+        scores = []
+        for i, s in enumerate(successors):
+            print(i)
+            scores.append(get_V_minmax_ab(self.index, s, self.depth, float("-inf"), float("inf")))
+        print(scores)
+        # scores = [get_V_minmax_ab(self.index, succ, self.depth, float("-inf"), float("inf")) for succ in successors]
+        worstScore = min(scores)
+        indices = [index for index in range(
+            len(scores)) if scores[index] == worstScore]
+        chosenIndex = random.choice(indices)
         return legalMoves[chosenIndex]
-        # END_YOUR_CODE
-
-######################################################################################
-# Problem 3b: implementing expectimax
-
 
 class ExpectimaxAgent(MultiAgentSearchAgent):
     """
@@ -314,49 +295,47 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         return legalMoves[chosenIndex]
      # END_YOUR_CODE
 
-######################################################################################
-# Problem 4a (extra credit): creating a better evaluation function
-
-
 def betterEvaluationFunction(currentGameState) -> float:
     """
-      Your extreme, unstoppable evaluation function (problem 4). Note that you can't fix a seed in this function.
+      Our unstoppable evaluation function
     """
 
-    # BEGIN_YOUR_CODE (our solution is 16 lines of code, but don't worry if you deviate from this)
-    num_ghosts = currentGameState.getNumAgents() - 1
-    p_pos = currentGameState.getPacmanPosition()
-    food_pos = currentGameState.getFood()
-    g_scared = [currentGameState.getGhostState(i).scaredTimer for i in range(1, num_ghosts + 1)]
-    g_pos = [currentGameState.getGhostPosition(i) for i in range(1, num_ghosts + 1)]
-    g_pos_scared = [g_pos[i] for i in range(len(g_pos)) if g_scared[i] > 0]
-    g_pos_not_scared = [g_pos[i] for i in range(len(g_pos)) if g_scared[i] == 0]
-    capsules = currentGameState.getCapsules()
-    g_dists_ns = [util.manhattanDistance(gp, p_pos) for gp in g_pos_not_scared]
-    g_dists_s = [util.manhattanDistance(gp, p_pos) for gp in g_pos_scared]
-    capsule_dists = [util.manhattanDistance(c, p_pos) for c in capsules]
-    food_dists = []
-    food_loc = []
-    total_food = 0
-    for x, row in enumerate(food_pos):
-        for y, val in enumerate(row):
-            if val:
-                total_food += 1
-                food_dists.append(util.manhattanDistance((x, y), p_pos))
-                food_loc.append((x, y))
+    # return large rewards for win/loss
+    loss_pentalty = -1000
+    win_reward = 1000
+    if currentGameState.isWin():
+        return win_reward
+    if currentGameState.isLose():
+        return loss_pentalty
     
-    state_features = [currentGameState.getScore(), 
-                      min(food_dists, default=0), 
-                      min(capsule_dists, default=0), 
-                      total_food,
-                      len(capsules), 
-                      min(g_dists_ns, default=0),
-                      min(g_dists_s, default=0)]
-    # print(state_features)
-    weights = [1.2, -2, 0, -3, -22, 0.5, -0.5]
+    # otherwise, calculate relative reward
+    (run_lengths_p1, run_lengths_p2) = currentGameState.getRunLengths()
+    num_p1_doubles = sum([i == 2 for i in run_lengths_p1]) \
+                        - sum([i == 3 for i in run_lengths_p1])
+    num_p2_doubles = sum([i == 2 for i in run_lengths_p2]) \
+                        - sum([i == 3 for i in run_lengths_p2])
+    num_p1_triples = sum([i == 3 for i in run_lengths_p1]) \
+                        - sum([i == 4 for i in run_lengths_p1])
+    num_p2_triples = sum([i == 3 for i in run_lengths_p2]) \
+                        - sum([i == 4 for i in run_lengths_p2])
+    num_p1_quadruples = sum([i == 4 for i in run_lengths_p1])
+    num_p2_quadruples = sum([i == 4 for i in run_lengths_p2])
+    num_p1_pieces = currentGameState.getNumPieces(0)
+    num_p2_pieces = currentGameState.getNumPieces(1)
+    num_p1_captures = currentGameState.getNumCaptures(0)
+    num_p2_captures = currentGameState.getNumCaptures(1)    
+    
+    state_features = [num_p1_pieces,
+                      num_p2_pieces,
+                      num_p1_captures,
+                      num_p2_captures,
+                      num_p1_doubles,
+                      num_p2_doubles,
+                      num_p1_triples,
+                      num_p2_triples,
+                      num_p1_quadruples,
+                      num_p2_quadruples]
+    
+    weights = [1, -1, 5, -5, 2, -2, 3, -3, 4, -4]
     return sum([state_features[i] * weights[i] for i in range(len(state_features))])
-    # END_YOUR_CODE
 
-
-# Abbreviation
-better = betterEvaluationFunction
