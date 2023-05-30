@@ -1,7 +1,7 @@
 
 from game import GameStateData
 from game import Game
-from agents import cliAgent, randomAgent
+from agents import cliAgent, randomAgent, AlphaBetaAgent, MinimaxAgent
 import sys, types, time, random, os, cmd
 import copy
 
@@ -14,7 +14,7 @@ class GameState:
     can be used by agents to reason about the game.
     """
 
-    def __init__(self, board_size=19, captures_to_win=5, run_len_to_win=5, prevStateData=None):
+    def __init__(self, board_size=4, captures_to_win=5, run_len_to_win=4, prevStateData=None):
 
         if prevStateData is not None: # Initial state
             self.data = GameStateData(board_size=board_size, 
@@ -45,7 +45,7 @@ class GameState:
                           run_len_to_win=self.data.run_len_to_win,
                           captures_to_win=self.data.captures_to_win,
                           prevStateData=self.deepCopyData())
-
+        
         # Let agent's logic deal with its action's effects on the board
         playerRules.applyAction(state, action, agentIndex)
         return state
@@ -53,14 +53,20 @@ class GameState:
     def getScore(self):
         return self.data.score
 
-    def getGameStateInfo():
-        #TODO
-
-        # this method will return relevant info about the gamestate
-        # number adjacent pairs, lengths of runs, number of pieces, number of captures, etc.
-        # this may be split into multiple methods
-        return
+    def getNumPieces(self, agentIndex):
+        total = 0
+        for i in range(self.data.board_size):
+            for j in range(self.data.board_size):
+                if self.getBoardPosition(i, j) == agentIndex + 1:
+                    total += 1
+        return total
     
+    def getNumCaptures(self, agentIndex):
+        if agentIndex == 0:
+            return self.data.num_player_1_captures
+        else:
+            return self.data.num_player_2_captures
+
     def getBoard(self):
         return self.data.board
     
@@ -69,61 +75,49 @@ class GameState:
         assert(y < self.data.board_size and y >= 0)
         return self.data.board[x][y]
     
-    def getRunLengths(self, agentIndex):
-        agent_run_lengths = []        
-        for i, row in enumerate(self.getBoard()):
-            for j, val in enumerate(row):
-                if val == agentIndex + 1:
-                    #explore in four directions for longest path:
-                    #explore right
-                    pathlength = 1
-                    next_index = j + 1
-                    while next_index < self.data.board_size:
-                        if self.data.board[i][next_index] != agentIndex + 1:
-                            break
-                        pathlength += 1
-                        next_index += 1
-                    agent_run_lengths.append(pathlength)
+    def getRunLengths(self):
 
-                    # explore down
-                    pathlength = 1
-                    next_index = i + 1
-                    while next_index < self.data.board_size:
-                        if self.data.board[next_index][j] != agentIndex + 1:
-                            break
-                        pathlength += 1
-                        next_index += 1
-                    agent_run_lengths.append(pathlength)
+        directions = [(1, 0), (1, 1), (0, 1)]
+        run_lengths_p1 = []
+        run_lengths_p2 = []
 
-                    # explore diagonal right down
-                    pathlength = 1
-                    next_row_index = i + 1
-                    next_col_index = j + 1
-                    while next_row_index < self.data.board_size and next_col_index < self.data.board_size:
-                        if self.data.board[next_row_index][next_col_index] != agentIndex + 1:
-                            break
-                        pathlength += 1
-                        next_row_index += 1
-                        next_col_index += 1
-                    agent_run_lengths.append(pathlength)
+        for i in range(self.data.board_size):
+            for j in range(self.data.board_size):
+                val = self.getBoardPosition(i, j)
+                if val == 1: 
+                    for direction in directions:
+                        run_length = 0
+                        val = self.getBoardPosition(i, j)
+                        while val == 1: # move along direction, sampling positions
+                            run_length += 1
+                            new_x = i + (direction[0] * run_length)
+                            new_y = j + (direction[1] * run_length)
+                            try:
+                                val = self.getBoardPosition(new_x, new_y)
+                            except: # position out of bounds
+                                break
+                        run_lengths_p1.append(run_length)
+                if val == 2:
+                    for direction in directions:
+                        run_length = 0
+                        val = self.getBoardPosition(i, j)
+                        while val == 2: # move along direction, sampling positions
+                            run_length += 1
+                            new_x = i + (direction[0] * run_length)
+                            new_y = j + (direction[1] * run_length)
+                            try:
+                                val = self.getBoardPosition(new_x, new_y)
+                            except: # position out of bounds
+                                break
+                        run_lengths_p2.append(run_length)
 
-                    #explore diagonal left down
-                    pathlength = 1
-                    next_row_index = i + 1
-                    next_col_index = j - 1
-                    while next_row_index < self.data.board_size and next_col_index >= 0:
-                        if self.data.board[next_row_index][next_col_index] != agentIndex + 1:
-                            break
-                        pathlength += 1
-                        next_row_index += 1
-                        next_col_index -= 1
-                    agent_run_lengths.append(pathlength)
-        return agent_run_lengths
-
+        return (run_lengths_p1, run_lengths_p2)        
+        
     def isLose(self):
         if self.data.num_player_2_captures >= self.data.captures_to_win:
             return True
-        if max(self.getRunLengths(1), default=0) >= self.data.run_len_to_win:
+        (p1, p2) = self.getRunLengths()
+        if max(p2, default=0) >= self.data.run_len_to_win:
             return True
         if self.data.turn == 0 and len(playerRules.getLegalActions(self, 0)) == 0:
             return True
@@ -132,7 +126,8 @@ class GameState:
     def isWin(self):
         if self.data.num_player_1_captures >= self.data.captures_to_win:
             return True
-        if max(self.getRunLengths(0), default=0) >= self.data.run_len_to_win:
+        (p1, p2) = self.getRunLengths()
+        if max(p1, default=0) >= self.data.run_len_to_win:
             return True
         if self.data.turn == 1 and len(playerRules.getLegalActions(self, 1)) == 0:
             return True
@@ -141,6 +136,7 @@ class GameState:
     def deepCopyData(self):
         data = copy.deepcopy(self.data)
         return data
+
 
     def __eq__( self, other ):
         """
@@ -170,15 +166,14 @@ class playerRules:
         Returns a list of possible actions.
         """
         possibleActions = []
-        for i, row in enumerate(state.getBoard()):
+        for i, row in enumerate(state.data.board):
             for j, val in enumerate(row):
                 if val == 0:
-                    possibleActions.append((j, i))
+                    possibleActions.append((i, j))
         return possibleActions
 
     @staticmethod
     def applyAction(state, action, agentIndex):
-        #TODO: change number of pairs captured if move completes a capture
         try:
             assert(action[0] < state.data.board_size)
             assert(action[1] < state.data.board_size)
@@ -186,7 +181,6 @@ class playerRules:
             state.data.board[action[0]][action[1]] = agentIndex + 1  
             positions_freed = playerRules.is_capture(state, action, agentIndex)
             num_captures = len(positions_freed) / 2
-            print(num_captures)
             if agentIndex == 0:
                 state.data.num_player_1_captures += num_captures
             else:
@@ -234,7 +228,7 @@ if __name__ == '__main__':
     import time
     tic = time.perf_counter()
     player1 = cliAgent()
-    player2 = randomAgent()
+    player2 = AlphaBetaAgent()
     new_state = GameState()
     game = Game(state=new_state, agents=[player1, player2])
     game.run()
