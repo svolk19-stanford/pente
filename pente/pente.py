@@ -14,7 +14,7 @@ class GameState:
     can be used by agents to reason about the game.
     """
 
-    def __init__(self, board_size=4, captures_to_win=5, run_len_to_win=4, prevStateData=None):
+    def __init__(self, board_size=9, captures_to_win=5, run_len_to_win=5, prevStateData=None):
 
         if prevStateData is not None: # Initial state
             self.data = GameStateData(board_size=board_size, 
@@ -24,6 +24,9 @@ class GameState:
             self.data = GameStateData(board_size=board_size, 
                                       captures_to_win=captures_to_win, 
                                       run_len_to_win=run_len_to_win)
+            
+    def setTurn(self, agentIndex):
+        self.data.turn = agentIndex
 
     def getLegalActions(self, agentIndex=0):
         """
@@ -55,11 +58,10 @@ class GameState:
 
     def getNumPieces(self, agentIndex):
         total = 0
-        for i in range(self.data.board_size):
-            for j in range(self.data.board_size):
-                if self.getBoardPosition(i, j) == agentIndex + 1:
-                    total += 1
-        return total
+        for (loc, val) in self.data.board.items():
+            if val == agentIndex + 1:
+                total += 1
+        return total 
     
     def getNumCaptures(self, agentIndex):
         if agentIndex == 0:
@@ -73,45 +75,56 @@ class GameState:
     def getBoardPosition(self, x, y):
         assert(x < self.data.board_size and x >= 0)
         assert(y < self.data.board_size and y >= 0)
-        return self.data.board[x][y]
+        return self.data.board[(x, y)]
     
     def getRunLengths(self):
 
-        directions = [(1, 0), (1, 1), (0, 1)]
+        directions = [(1, 0), (1, 1), (0, 1), (-1, 1)]
         run_lengths_p1 = []
         run_lengths_p2 = []
 
-        for i in range(self.data.board_size):
-            for j in range(self.data.board_size):
-                val = self.getBoardPosition(i, j)
-                if val == 1: 
-                    for direction in directions:
-                        run_length = 0
-                        val = self.getBoardPosition(i, j)
-                        while val == 1: # move along direction, sampling positions
-                            run_length += 1
-                            new_x = i + (direction[0] * run_length)
-                            new_y = j + (direction[1] * run_length)
-                            try:
-                                val = self.getBoardPosition(new_x, new_y)
-                            except: # position out of bounds
-                                break
-                        run_lengths_p1.append(run_length)
-                if val == 2:
-                    for direction in directions:
-                        run_length = 0
-                        val = self.getBoardPosition(i, j)
-                        while val == 2: # move along direction, sampling positions
-                            run_length += 1
-                            new_x = i + (direction[0] * run_length)
-                            new_y = j + (direction[1] * run_length)
-                            try:
-                                val = self.getBoardPosition(new_x, new_y)
-                            except: # position out of bounds
-                                break
-                        run_lengths_p2.append(run_length)
+        for (loc, start) in self.data.board.items():
+            if start == 1: 
+                for direction in directions:
+                    run_length = 0
+                    val = self.getBoardPosition(loc[0], loc[1])
+                    while val == 1: # move along direction, sampling positions
+                        run_length += 1
+                        new_x = loc[0] + (direction[0] * run_length)
+                        new_y = loc[1] + (direction[1] * run_length)
+                        try:
+                            val = self.getBoardPosition(new_x, new_y)
+                        except: # position out of bounds
+                            break
+                    run_lengths_p1.append(run_length)
+            if start == 2:
+                for direction in directions:
+                    run_length = 0
+                    val = self.getBoardPosition(loc[0], loc[1])
+                    while val == 2: # move along direction, sampling positions
+                        run_length += 1
+                        new_x = loc[0] + (direction[0] * run_length)
+                        new_y = loc[1] + (direction[1] * run_length)
+                        try:
+                            val = self.getBoardPosition(new_x, new_y)
+                        except: # position out of bounds
+                            break
+                    run_lengths_p2.append(run_length)
 
-        return (run_lengths_p1, run_lengths_p2)        
+        return (run_lengths_p1, run_lengths_p2)  
+
+    def addPositionsInRadius(self, position, radius):
+        new_positions = []
+        for i in range(position[0] - radius, position[0] + radius):
+            for j in range(position[1] - radius, position[1] + radius + 1):
+                if i < 0 or i >= self.data.board_size:
+                    continue
+                if j < 0 or j >= self.data.board_size:
+                    continue
+                if (i, j) in list(self.data.board.keys()):
+                    continue
+                self.data.board[(i, j)] = 0    
+
         
     def isLose(self):
         if self.data.num_player_2_captures >= self.data.captures_to_win:
@@ -165,28 +178,49 @@ class playerRules:
         """
         Returns a list of possible actions.
         """
-        possibleActions = []
-        for i, row in enumerate(state.data.board):
-            for j, val in enumerate(row):
-                if val == 0:
-                    possibleActions.append((i, j))
+        if agentIndex == 1:
+            possibleActions = [loc for (loc, val) in state.data.board.items() if val == 0]
+        else:
+            possibleActions = []
+            for i in range(state.data.board_size):
+                for j in range(state.data.board_size):
+                    if (i, j) in list(state.data.board.keys()):
+                        if state.data.board[(i, j)] == 0:
+                            possibleActions.append((i, j))
+                    else:
+                        possibleActions.append((i, j))
         return possibleActions
 
     @staticmethod
     def applyAction(state, action, agentIndex):
         try:
+            action = tuple(action)
             assert(action[0] < state.data.board_size)
             assert(action[1] < state.data.board_size)
-            assert(state.data.board[action[0]][action[1]] == 0)
-            state.data.board[action[0]][action[1]] = agentIndex + 1  
-            positions_freed = playerRules.is_capture(state, action, agentIndex)
-            num_captures = len(positions_freed) / 2
-            if agentIndex == 0:
-                state.data.num_player_1_captures += num_captures
+            if action in list(state.data.board.keys()):
+                assert(state.data.board[action] == 0)
+            if agentIndex == 0:  
+                state.data.board[action] = agentIndex + 1  
+                positions_freed = playerRules.is_capture(state, action, agentIndex)
+                num_captures = len(positions_freed) / 2
+                if agentIndex == 0:
+                    state.data.num_player_1_captures += num_captures
+                else:
+                    state.data.num_player_2_captures += num_captures
+                for position in positions_freed: # free positions on board
+                    state.data.board[position] = 0
+
+                state.addPositionsInRadius(action, 2)
             else:
-                state.data.num_player_2_captures += num_captures
-            for position in positions_freed: # free positions on board
-                state.data.board[position[0]][position[1]] = 0
+                state.data.board[action] = agentIndex + 1  
+                positions_freed = playerRules.is_capture(state, action, agentIndex)
+                num_captures = len(positions_freed) / 2
+                if agentIndex == 0:
+                    state.data.num_player_1_captures += num_captures
+                else:
+                    state.data.num_player_2_captures += num_captures
+                for position in positions_freed: # free positions on board
+                    state.data.board[position] = 0
         except:
             raise Exception("Invalid move")
         

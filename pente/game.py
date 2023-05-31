@@ -1,6 +1,4 @@
 
-from util import *
-from util import raiseNotDefined
 
 class Agent:
   """
@@ -22,7 +20,7 @@ class GameStateData:
     """
     Generates a new data packet by copying information from its predecessor.
     """
-    self.board = [[0 for i in range(board_size)] for j in range(board_size)]
+    self.board = {}
     self.board_size = board_size
     self.captures_to_win = captures_to_win
     self.run_len_to_win = run_len_to_win
@@ -55,6 +53,11 @@ class Game:
         self.state = state        
 
     def __str__(self):
+       
+        board_grid = [[0 for i in range(self.state.data.board_size)] for j in range(self.state.data.board_size)]
+        for (location, val) in self.state.data.board.items():
+            board_grid[location[0]][location[1]] = val
+            
         board_str = " _ "
         for i in range(self.state.data.board_size):
             if i < 10:
@@ -63,13 +66,13 @@ class Game:
                 board_str += f" {i}"
 
         board_str += "\n"
-        for j in range(len(self.state.data.board[0])):
+        for j in range(len(board_grid[0])):
             if j < 10:
                 row_str = f" {j} "
             else:
                 row_str = f" {j}"
-            for i in range(len(self.state.data.board)):
-                val = self.state.data.board[i][j]
+            for i in range(len(board_grid)):
+                val = board_grid[i][j]
                 if val == 0:
                     row_str += "-|-"
                 elif val == 1:
@@ -90,6 +93,7 @@ class Game:
         while not self.gameOver:
             if print_board:
                 print(self)
+            self.state.setTurn(agentIndex)
             agent = self.agents[agentIndex]
             action = agent.getAction(self.state)
             self.moveHistory.append((agentIndex, action))
@@ -113,9 +117,6 @@ class Game:
             if self.state.isLose():
                 print("You loose :(\n")
                 self.gameOver = True
-
-        #TODO: output move history and winning info to a file for TD learning training
-
 
 
 
