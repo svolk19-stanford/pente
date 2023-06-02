@@ -169,33 +169,99 @@ def betterEvaluationFunction(currentGameState) -> float:
         return loss_pentalty
     
     # otherwise, calculate relative reward
-    (run_lengths_p1, run_lengths_p2) = currentGameState.getRunLengths()
-    num_p1_doubles = sum([i == 2 for i in run_lengths_p1]) \
-                        - sum([i == 3 for i in run_lengths_p1])
-    num_p2_doubles = sum([i == 2 for i in run_lengths_p2]) \
-                        - sum([i == 3 for i in run_lengths_p2])
-    num_p1_triples = sum([i == 3 for i in run_lengths_p1]) \
-                        - sum([i == 4 for i in run_lengths_p1])
-    num_p2_triples = sum([i == 3 for i in run_lengths_p2]) \
-                        - sum([i == 4 for i in run_lengths_p2])
-    num_p1_quadruples = sum([i == 4 for i in run_lengths_p1])
-    num_p2_quadruples = sum([i == 4 for i in run_lengths_p2])
-    num_p1_pieces = currentGameState.getNumPieces(0)
-    num_p2_pieces = currentGameState.getNumPieces(1)
-    num_p1_captures = currentGameState.getNumCaptures(0)
-    num_p2_captures = currentGameState.getNumCaptures(1)    
+    (all_p1, all_p2, protected_p1, protected_p2, half_protected_p1, \
+     half_protected_p2, unprotected_p1, unprotected_p2) = currentGameState.getRunLengths()
     
-    state_features = [num_p1_pieces,
-                      num_p2_pieces,
-                      num_p1_captures,
-                      num_p2_captures,
-                      num_p1_doubles,
-                      num_p2_doubles,
-                      num_p1_triples,
-                      num_p2_triples,
-                      num_p1_quadruples,
-                      num_p2_quadruples]
+    # number of protected runs
+    p1_doubles_prot = sum([i == 2 for i in protected_p1])
+    p2_doubles_prot = sum([i == 2 for i in protected_p2]) 
+    p1_triples_prot = sum([i == 3 for i in protected_p1]) 
+    p2_triples_prot = sum([i == 3 for i in protected_p2]) 
+    p1_quadruples_prot = sum([i == 4 for i in protected_p1])
+    p2_quadruples_prot = sum([i == 4 for i in protected_p2])
+
+    # number of unprotected runs
+    p1_doubles_unprot = sum([i == 2 for i in unprotected_p1])
+    p2_doubles_unprot = sum([i == 2 for i in unprotected_p2]) 
+    p1_triples_unprot = sum([i == 3 for i in unprotected_p1]) 
+    p2_triples_unprot = sum([i == 3 for i in unprotected_p2]) 
+    p1_quadruples_unprot = sum([i == 4 for i in unprotected_p1])
+    p2_quadruples_unprot = sum([i == 4 for i in unprotected_p2])
+
+    # number of half-protected runs
+    p1_doubles_half_prot = sum([i == 2 for i in half_protected_p1]) 
+    p2_doubles_half_prot = sum([i == 2 for i in half_protected_p2]) 
+    p1_triples_half_prot = sum([i == 3 for i in half_protected_p1]) 
+    p2_triples_half_prot = sum([i == 3 for i in half_protected_p2]) 
+    p1_quadruples_half_prot = sum([i == 4 for i in half_protected_p1])
+    p2_quadruples_half_prot = sum([i == 4 for i in half_protected_p2])
+
+    # Other features
+    p1_pieces = currentGameState.getNumPieces(0)
+    p2_pieces = currentGameState.getNumPieces(1)
+    p1_captures = currentGameState.getNumCaptures(0)
+    p2_captures = currentGameState.getNumCaptures(1) 
     
-    weights = [1, -1, 5, -5, 2, -2, 3, -3, 4, -4]
+    num_p1_doubles = sum([i == 2 for i in all_p1]) \
+                        - sum([i == 3 for i in all_p1])
+    num_p2_doubles = sum([i == 2 for i in all_p2]) \
+                        - sum([i == 3 for i in all_p2])
+    num_p1_triples = sum([i == 3 for i in all_p1]) \
+                        - sum([i == 4 for i in all_p1])
+    num_p2_triples = sum([i == 3 for i in all_p2]) \
+                        - sum([i == 4 for i in all_p2])
+    num_p1_quadruples = sum([i == 4 for i in all_p1])
+    num_p2_quadruples = sum([i == 4 for i in all_p2])  
+
+    assert(num_p1_doubles == p1_doubles_prot + p1_doubles_unprot + p1_doubles_half_prot)
+    assert(num_p2_doubles == p2_doubles_prot + p2_doubles_unprot + p2_doubles_half_prot)
+    assert(num_p1_triples == p1_triples_prot + p1_triples_unprot + p1_triples_half_prot)
+    assert(num_p2_triples == p2_triples_prot + p2_triples_unprot + p2_triples_half_prot)
+    assert(num_p1_quadruples == p1_quadruples_prot + p1_quadruples_unprot + p1_quadruples_half_prot)
+    assert(num_p2_quadruples == p2_quadruples_prot + p2_quadruples_unprot + p2_quadruples_half_prot)
+
+    
+    # state_features = [p1_pieces,
+    #                   p2_pieces,
+    #                   p1_captures,
+    #                   p2_captures,
+    #                   p1_doubles,
+    #                   p2_doubles,
+    #                   p1_triples,
+    #                   p2_triples,
+    #                   p1_quadruples,
+    #                   p2_quadruples]
+
+    state_features = [p1_pieces,
+                      p2_pieces,
+                      p1_captures,
+                      p2_captures, 
+
+                      p1_doubles_prot,
+                      p2_doubles_prot,
+                      p1_triples_prot,
+                      p2_triples_prot,
+                      p1_quadruples_prot,
+                      p2_quadruples_prot,
+
+                      p1_doubles_half_prot,
+                      p2_doubles_half_prot,
+                      p1_triples_half_prot,
+                      p2_triples_half_prot,
+                      p1_quadruples_half_prot,
+                      p2_quadruples_half_prot,
+
+                      p1_doubles_unprot,
+                      p2_doubles_unprot,
+                      p1_triples_unprot,
+                      p2_triples_unprot,
+                      p1_quadruples_unprot,
+                      p2_quadruples_unprot]
+
+    # subjective feature weights 
+    weights = [1, -1, 10, -10, 
+               2, -2, 3, -3, 4, -4, 
+               -3, 3, 4, -4, 7, -7, 
+               4, -4, 5, -5, 20, -20]
     return sum([state_features[i] * weights[i] for i in range(len(state_features))])
 
