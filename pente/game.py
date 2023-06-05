@@ -93,56 +93,6 @@ class Game:
         while not self.gameOver:
             if print_board:
                 print(self)
-                # otherwise, calculate relative reward
-                (all_p1, all_p2, protected_p1, protected_p2, half_protected_p1, \
-                half_protected_p2, unprotected_p1, unprotected_p2) = self.state.getRunLengths()
-                
-                # number of protected runs
-                p1_doubles_prot = sum([i == 2 for i in protected_p1])
-                p2_doubles_prot = sum([i == 2 for i in protected_p2]) 
-                p1_triples_prot = sum([i == 3 for i in protected_p1]) 
-                p2_triples_prot = sum([i == 3 for i in protected_p2]) 
-                p1_quadruples_prot = sum([i == 4 for i in protected_p1])
-                p2_quadruples_prot = sum([i == 4 for i in protected_p2])
-
-                # number of unprotected runs
-                p1_doubles_unprot = sum([i == 2 for i in unprotected_p1])
-                p2_doubles_unprot = sum([i == 2 for i in unprotected_p2]) 
-                p1_triples_unprot = sum([i == 3 for i in unprotected_p1]) 
-                p2_triples_unprot = sum([i == 3 for i in unprotected_p2]) 
-                p1_quadruples_unprot = sum([i == 4 for i in unprotected_p1])
-                p2_quadruples_unprot = sum([i == 4 for i in unprotected_p2])
-
-                # number of half-protected runs
-                p1_doubles_half_prot = sum([i == 2 for i in half_protected_p1]) 
-                p2_doubles_half_prot = sum([i == 2 for i in half_protected_p2]) 
-                p1_triples_half_prot = sum([i == 3 for i in half_protected_p1]) 
-                p2_triples_half_prot = sum([i == 3 for i in half_protected_p2]) 
-                p1_quadruples_half_prot = sum([i == 4 for i in half_protected_p1])
-                p2_quadruples_half_prot = sum([i == 4 for i in half_protected_p2])
-        
-                state_features = [p1_doubles_prot,
-                                p2_doubles_prot,
-                                p1_triples_prot,
-                                p2_triples_prot,
-                                p1_quadruples_prot,
-                                p2_quadruples_prot,
-
-                                p1_doubles_half_prot,
-                                p2_doubles_half_prot,
-                                p1_triples_half_prot,
-                                p2_triples_half_prot,
-                                p1_quadruples_half_prot,
-                                p2_quadruples_half_prot,
-
-                                p1_doubles_unprot,
-                                p2_doubles_unprot,
-                                p1_triples_unprot,
-                                p2_triples_unprot,
-                                p1_quadruples_unprot,
-                                p2_quadruples_unprot]
-                print(state_features)
-    
             self.state.setTurn(agentIndex)
             agent = self.agents[agentIndex]
             action = agent.getAction(self.state)
