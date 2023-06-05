@@ -4,7 +4,7 @@ from game import Game
 from agents import cliAgent, randomAgent, AlphaBetaAgent, MinimaxAgent
 import sys, types, time, random, os, cmd
 import copy
-
+from agents import betterEvaluationFunction
 
 class GameState:
     """
@@ -80,14 +80,20 @@ class GameState:
     def getRunLengths(self):
 
         directions = [(1, 0), (1, 1), (0, 1), (-1, 1)]
-        run_lengths_p1 = []
-        run_lengths_p2 = []
+        protected_p1 = []
+        protected_p2 = []
+        unprotected_p1 = []
+        unprotected_p2 = []
+        half_protected_p1 = []
+        half_protected_p2 = []
+        all_p1 = []
+        all_p2 = []
 
         for (loc, start) in self.data.board.items():
             if start == 1: 
                 for direction in directions:
                     run_length = 0
-                    val = self.getBoardPosition(loc[0], loc[1])
+                    val = start
                     while val == 1: # move along direction, sampling positions
                         run_length += 1
                         new_x = loc[0] + (direction[0] * run_length)
@@ -96,11 +102,56 @@ class GameState:
                             val = self.getBoardPosition(new_x, new_y)
                         except: # position out of bounds
                             break
-                    run_lengths_p1.append(run_length)
+
+                    try:
+                        prev_val = self.getBoardPosition(loc[0] - direction[0], loc[1] - direction[1])
+                    except: # position not in board or out of bounds
+                        prev_val = None
+                    try:
+                        next_val = self.getBoardPosition(new_x, new_y)
+                    except:
+                        next_val = None
+
+                    all_p1.append(run_length)
+
+                    # establish the protection of the run
+                    prev_x = loc[0] - direction[0]
+                    prev_y = loc[1] - direction[1]
+                    if new_x < self.data.board_size and new_x >= 0 \
+                        and new_y < self.data.board_size and new_y >= 0:
+                        if prev_x < self.data.board_size and prev_x >= 0 \
+                            and prev_y < self.data.board_size and prev_y >= 0:
+                            if (next_val == 2 and (prev_val == 0 or prev_val == None)) \
+                                or ((next_val == 0 or next_val == None) and prev_val == 2):
+                                half_protected_p1.append(run_length)
+                            elif (next_val== 0 or next_val == None) and (prev_val == 0 or prev_val == None):
+                                unprotected_p1.append(run_length)
+                            elif next_val== 2 and prev_val == 2:
+                                protected_p1.append(run_length)
+                        else:
+                            if next_val == 2:
+                                protected_p1.append(run_length)
+                            elif (next_val == 0 or next_val == None) and run_length > 2:
+                                half_protected_p1.append(run_length)
+                            elif (next_val == 0 or next_val == None) and run_length == 2:
+                                unprotected_p1.append(run_length)
+                    else:
+                        if prev_x < self.data.board_size and prev_x >= 0 \
+                            and prev_y < self.data.board_size and prev_y >= 0:
+                            if prev_val == 2:
+                                protected_p1.append(run_length)
+                            elif (prev_val == 0 or prev_val == None) and run_length > 2:
+                                half_protected_p1.append(run_length)
+                            elif (prev_val == 0 or prev_val == None) and run_length == 2:
+                                unprotected_p1.append(run_length)
+                        else:
+                            protected_p1.append(run_length)
+
+
             if start == 2:
                 for direction in directions:
                     run_length = 0
-                    val = self.getBoardPosition(loc[0], loc[1])
+                    val = start
                     while val == 2: # move along direction, sampling positions
                         run_length += 1
                         new_x = loc[0] + (direction[0] * run_length)
@@ -109,9 +160,52 @@ class GameState:
                             val = self.getBoardPosition(new_x, new_y)
                         except: # position out of bounds
                             break
-                    run_lengths_p2.append(run_length)
 
-        return (run_lengths_p1, run_lengths_p2)  
+                    try:
+                        prev_val = self.getBoardPosition(loc[0] - direction[0], loc[1] - direction[1])
+                    except: # position not in board or out of bounds
+                        prev_val = None
+                    try:
+                        next_val = self.getBoardPosition(new_x, new_y)
+                    except:
+                        next_val = None
+                    
+                    all_p2.append(run_length)
+
+                    # establish the protection of the run
+                    prev_x = loc[0] - direction[0]
+                    prev_y = loc[1] - direction[1]
+                    if new_x < self.data.board_size and new_x >= 0 \
+                        and new_y < self.data.board_size and new_y >= 0:
+                        if prev_x < self.data.board_size and prev_x >= 0 \
+                            and prev_y < self.data.board_size and prev_y >= 0:
+                            if (next_val == 1 and (prev_val == 0 or prev_val == None)) \
+                                or ((next_val == 0 or next_val == None) and prev_val == 1):
+                                half_protected_p2.append(run_length)
+                            elif (next_val == 0 or next_val == None) and (prev_val == 0 or prev_val == None):
+                                unprotected_p2.append(run_length)
+                            elif next_val == 1 and prev_val == 1:
+                                protected_p2.append(run_length)
+                        else:
+                            if next_val == 1:
+                                protected_p2.append(run_length)
+                            elif (next_val == 0 or next_val == None) and run_length > 2:
+                                half_protected_p2.append(run_length)
+                            elif (next_val == 0 or next_val == None) and run_length == 2:
+                                unprotected_p2.append(run_length)
+                    else:
+                        if prev_x < self.data.board_size and prev_x >= 0 \
+                            and prev_y < self.data.board_size and prev_y >= 0:
+                            if prev_val == 1:
+                                protected_p2.append(run_length)
+                            elif (prev_val == 0 or prev_val == None) and run_length > 2:
+                                half_protected_p2.append(run_length)
+                            elif (prev_val == 0 or prev_val == None) and run_length == 2:
+                                unprotected_p2.append(run_length)
+                        else:
+                            protected_p2.append(run_length)
+
+        return (all_p1, all_p2, protected_p1, protected_p2, half_protected_p1, half_protected_p2, unprotected_p1, unprotected_p2)  
 
     def addPositionsInRadius(self, position, radius):
         new_positions = []
@@ -129,7 +223,7 @@ class GameState:
     def isLose(self):
         if self.data.num_player_2_captures >= self.data.captures_to_win:
             return True
-        (p1, p2) = self.getRunLengths()
+        p2 = self.getRunLengths()[1]
         if max(p2, default=0) >= self.data.run_len_to_win:
             return True
         if self.data.turn == 0 and len(playerRules.getLegalActions(self, 0)) == 0:
@@ -139,7 +233,7 @@ class GameState:
     def isWin(self):
         if self.data.num_player_1_captures >= self.data.captures_to_win:
             return True
-        (p1, p2) = self.getRunLengths()
+        p1 = self.getRunLengths()[0]
         if max(p1, default=0) >= self.data.run_len_to_win:
             return True
         if self.data.turn == 1 and len(playerRules.getLegalActions(self, 1)) == 0:
@@ -164,9 +258,38 @@ class GameState:
         """
         return hash( self.data )
 
-    def __str__( self ):
+    def __str__(self):
+       
+        board_grid = [[0 for i in range(self.data.board_size)] for j in range(self.data.board_size)]
+        for (location, val) in self.data.board.items():
+            board_grid[location[0]][location[1]] = val
+            
+        board_str = " _ "
+        for i in range(self.data.board_size):
+            if i < 10:
+                board_str += f" {i} "
+            else:
+                board_str += f" {i}"
 
-        return str(self.data)
+        board_str += "\n"
+        for j in range(len(board_grid[0])):
+            if j < 10:
+                row_str = f" {j} "
+            else:
+                row_str = f" {j}"
+            for i in range(len(board_grid)):
+                val = board_grid[i][j]
+                if val == 0:
+                    row_str += "-|-"
+                elif val == 1:
+                    row_str += " 1 "
+                elif val == 2:
+                    row_str += " 2 "
+                else:
+                    raise Exception("invalid player index in board")
+            row_str += "\n"
+            board_str += row_str
+        return board_str
 
 class playerRules:
     """
@@ -268,3 +391,64 @@ if __name__ == '__main__':
     game.run()
     toc = time.perf_counter()
     print("total times: " + str(toc - tic))
+
+
+    # gameState = GameState()
+    # gameState.data.board = {(1, 3): 1, (2, 2): 1, (3, 4): 2, (4, 4): 2}
+    # # otherwise, calculate relative reward
+    # (all_p1, all_p2, protected_p1, protected_p2, half_protected_p1, \
+    #  half_protected_p2, unprotected_p1, unprotected_p2) = gameState.getRunLengths()
+    
+    # # number of protected runs
+    # p1_doubles_prot = sum([i == 2 for i in protected_p1])
+    # p2_doubles_prot = sum([i == 2 for i in protected_p2]) 
+    # p1_triples_prot = sum([i == 3 for i in protected_p1]) 
+    # p2_triples_prot = sum([i == 3 for i in protected_p2]) 
+    # p1_quadruples_prot = sum([i == 4 for i in protected_p1])
+    # p2_quadruples_prot = sum([i == 4 for i in protected_p2])
+
+    # # number of unprotected runs
+    # p1_doubles_unprot = sum([i == 2 for i in unprotected_p1])
+    # p2_doubles_unprot = sum([i == 2 for i in unprotected_p2]) 
+    # p1_triples_unprot = sum([i == 3 for i in unprotected_p1]) 
+    # p2_triples_unprot = sum([i == 3 for i in unprotected_p2]) 
+    # p1_quadruples_unprot = sum([i == 4 for i in unprotected_p1])
+    # p2_quadruples_unprot = sum([i == 4 for i in unprotected_p2])
+
+    # # number of half-protected runs
+    # p1_doubles_half_prot = sum([i == 2 for i in half_protected_p1]) 
+    # p2_doubles_half_prot = sum([i == 2 for i in half_protected_p2]) 
+    # p1_triples_half_prot = sum([i == 3 for i in half_protected_p1]) 
+    # p2_triples_half_prot = sum([i == 3 for i in half_protected_p2]) 
+    # p1_quadruples_half_prot = sum([i == 4 for i in half_protected_p1])
+    # p2_quadruples_half_prot = sum([i == 4 for i in half_protected_p2])
+
+    # # Other features
+    # p1_pieces = gameState.getNumPieces(0)
+    # p2_pieces = gameState.getNumPieces(1)
+    # p1_captures = gameState.getNumCaptures(0)
+    # p2_captures = gameState.getNumCaptures(1) 
+    
+    # num_p1_doubles = sum([i == 2 for i in all_p1]) \
+    #                     - sum([i == 3 for i in all_p1])
+    # num_p2_doubles = sum([i == 2 for i in all_p2]) \
+    #                     - sum([i == 3 for i in all_p2])
+    # num_p1_triples = sum([i == 3 for i in all_p1]) \
+    #                     - sum([i == 4 for i in all_p1])
+    # num_p2_triples = sum([i == 3 for i in all_p2]) \
+    #                     - sum([i == 4 for i in all_p2])
+    # num_p1_quadruples = sum([i == 4 for i in all_p1])
+    # num_p2_quadruples = sum([i == 4 for i in all_p2])  
+
+    # print("number of values:")
+    # print(num_p1_doubles)
+    # print(p1_doubles_prot)
+    # print(p1_doubles_unprot)
+    # print(p1_doubles_half_prot)
+    # print(gameState)
+    # assert(num_p1_doubles == p1_doubles_prot + p1_doubles_unprot + p1_doubles_half_prot)
+    # assert(num_p2_doubles == p2_doubles_prot + p2_doubles_unprot + p2_doubles_half_prot)
+    # assert(num_p1_triples == p1_triples_prot + p1_triples_unprot + p1_triples_half_prot)
+    # assert(num_p2_triples == p2_triples_prot + p2_triples_unprot + p2_triples_half_prot)
+    # assert(num_p1_quadruples == p1_quadruples_prot + p1_quadruples_unprot + p1_quadruples_half_prot)
+    # assert(num_p2_quadruples == p2_quadruples_prot + p2_quadruples_unprot + p2_quadruples_half_prot)
