@@ -116,7 +116,7 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
             if gameState.isWin() or gameState.isLose() or len(actions) == 0 or depth == 0: # terminal state
                 return betterEvaluationFunction(gameState)
             else: # find V_minmax through recursion on actions
-                if agent_idx == self.index: # max agent
+                if agent_idx == 0: # max agent
                     value = float("-inf")
                     best_action = ""
                     for action in actions:
@@ -259,9 +259,9 @@ def betterEvaluationFunction(currentGameState) -> float:
                       p2_quadruples_unprot]
 
     # subjective feature weights 
-    weights = [1, -1, 10, -10, 
+    weights = [1, -1, 30, -30, 
                2, -2, 3, -3, 4, -4, 
                -3, 3, 4, -4, 7, -7, 
-               4, -4, 5, -5, 20, -20]
+               4, -4, 20, -20, 100, -100]
     return sum([state_features[i] * weights[i] for i in range(len(state_features))])
 
